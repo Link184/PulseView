@@ -15,11 +15,10 @@
  */
 
 apply plugin: 'com.android.library'
-apply plugin: "com.jfrog.bintray"
-apply plugin: 'com.github.dcendents.android-maven'
 apply plugin: 'maven'
+apply plugin: 'signing'
 
-version = "1.0.2"
+apply from: '../publish.gradle'
 
 android {
     compileSdkVersion 29
@@ -43,92 +42,60 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.1.0'
 }
 
-def siteUrl = 'https://github.com/DevLight-Mobile-Agency/PulseView'
-def gitUrl = 'https://github.com/DevLight-Mobile-Agency/PulseView.git'
-group = "com.github.devlight.pulseview"
+task androidSourcesJar(type: Jar) {
+    classifier = 'sources'
+    from android.sourceSets.main.java.srcDirs
+}
 
-install {
-    repositories.mavenInstaller {
-        // This generates POM.xml with proper parameters
-        pom {
-            project {
-                packaging 'aar'
+artifacts {
+    archives androidSourcesJar
+}
 
-                // Add your description here
-                name 'PulseView'
-                description = 'Widget that generates pulsation relative to your icons.'
-                url siteUrl
+signing {
+    required { !VERSION_NAME.contains("SNAPSHOT") }
+    sign configurations.archives
+}
 
-                // Set your license
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+
+            repository(url: resolveRepositoyUrl()) {
+                authentication(userName: getUsername(),
+                        password: getPassword())
+                pom.groupId = GROUP
+                pom.artifactId = ARTIFACT_ID
+
+                pom.version = VERSION_NAME
+            }
+
+            pom.project {
+                name POM_NAME
+                description POM_DESCRIPTION
+                url POM_URL
+
+                scm {
+                    url POM_SCM_URL
+                    connection POM_SCM_CONNECTION
+                    developerConnection POM_SCM_DEV_CONNECTION
+                }
+
                 licenses {
                     license {
-                        name 'The Apache Software License, Version 2.0'
-                        url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                        name POM_LICENCE_NAME
+                        url POM_LICENCE_URL
+                        distribution POM_LICENCE_DIST
                     }
                 }
+
                 developers {
                     developer {
-                        id 'gigamole'
-                        name 'Basil Miller'
-                        email 'gigamole53@gmail.com'
+                        id POM_DEVELOPER_ID
+                        name POM_DEVELOPER_NAME
                     }
                 }
-                scm {
-                    connection gitUrl
-                    developerConnection gitUrl
-                    url siteUrl
-                }
             }
-        }
-    }
-}
-
-task sourcesJar(type: Jar) {
-    from android.sourceSets.main.java.srcDirs
-    classifier = 'sources'
-}
-
-task javadoc(type: Javadoc) {
-    source = android.sourceSets.main.java.srcDirs
-    classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
-}
-
-task javadocJar(type: Jar, dependsOn: javadoc) {
-    classifier = 'javadoc'
-    from javadoc.destinationDir
-}
-artifacts {
-    archives javadocJar
-    archives sourcesJar
-}
-
-Properties properties = new Properties()
-properties.load(project.rootProject.file('local.properties').newDataInputStream())
-
-bintray {
-    user = properties.getProperty("bintray.user")
-    key = properties.getProperty("bintray.apikey")
-
-    configurations = ['archives']
-    pkg {
-        repo = "maven"
-        // it is the name that appears in bintray when logged
-        name = "pulseview"
-        websiteUrl = siteUrl
-        vcsUrl = gitUrl
-        licenses = ["Apache-2.0"]
-        publish = true
-        version {
-            gpg {
-                sign = true //Determines whether to GPG sign the files. The default is false
-                passphrase = properties.getProperty("bintray.gpg.password") //Optional. The passphrase for GPG signing'
-            }
-//            mavenCentralSync {
-//                sync = true //Optional (true by default). Determines whether to sync the version to Maven Central.
-//                user = properties.getProperty("bintray.oss.user") //OSS user token
-//                password = properties.getProperty("bintray.oss.password") //OSS user password
-//                close = '1' //Optional property. By default the staging repository is closed and artifacts are released to Maven Central. You can optionally turn this behaviour off (by puting 0 as value) and release the version manually.
-//            }
         }
     }
 }
