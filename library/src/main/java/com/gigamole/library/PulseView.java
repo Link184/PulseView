@@ -424,6 +424,13 @@ public class PulseView extends View {
         if (hasWindowFocus()) postInvalidate();
     }
 
+    public void clearPulse() {
+        finishPulse();
+        mPulseModels.clear();
+        postInvalidate();
+        invalidatePulse();
+    }
+
     @Override
     protected void onVisibilityChanged(@NonNull final View changedView, final int visibility) {
         super.onVisibilityChanged(changedView, visibility);
